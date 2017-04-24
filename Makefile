@@ -24,15 +24,15 @@ yaccfile: lexfile awk.y
 lex.yy.o: lexfile yaccfile
 	$(CC) $(CFLAGS) -c lex.yy.c
 awk.tab.o: awk.tab.c
-	$(CC) $(CFLAGS) -c awk.tab.c -lm
+	$(CC) $(CFLAGS) -c awk.tab.c
 main.o: main.c
-	$(CC) $(CFLAGS) -c main.c -lm
+	$(CC) $(CFLAGS) -c main.c
 interpreter.o: interpreter.c
 	$(CC) $(CFLAGS) -c interpreter.c -lm
 customstring.o: customstring.c
-	$(CC) $(CFLAGS) -c customstring.c -lm
+	$(CC) $(CFLAGS) -c customstring.c
 customio.o: customio.c
-	$(CC) $(CFLAGS) -c customio.c -lm -o
+	$(CC) $(CFLAGS) -c customio.c 
 
 
 clean: 

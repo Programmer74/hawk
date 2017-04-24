@@ -2,15 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <unistd.h>
 #include <fcntl.h>
+#include <unistd.h>
 
+#include <errno.h>
 #include "entry.h"
 #include "interpreter.h"
 #include "customio.h"
 
 char *parserInput;
 char *textInput;
+char *errorMessage;
 
 int DEBUG = 0;
 
@@ -44,6 +46,8 @@ int main(int argc, char** argv) {
 	extern entry* head;
 	extern entry* awkbegin;
 	extern entry* awkend;
+	
+	errorMessage = (char*)malloc(sizeof(char) * 50);
 	
 	parserInput = (char*)calloc(FILE_INPUT_BUFFER_SIZE, sizeof(char));
 	textInput = (char*)calloc(FILE_INPUT_BUFFER_SIZE, sizeof(char));
@@ -99,10 +103,16 @@ int main(int argc, char** argv) {
 	if (has_script_name == 1) {
 		int fdes = open(script_fname, O_RDONLY);
 		
-		if (fdes < 0) die("cannot open script file", IO_ERROR);
+		if (fdes < 0) {
+			printstr_err(strerror(errno));
+			die(" - cannot open script file", IO_ERROR);
+		}
 		
 		res = read(fdes, parserInput, FILE_INPUT_BUFFER_SIZE);
-		if (res < 0) die("cannot open script file", IO_ERROR);
+		if (res < 0) {
+			printstr_err(strerror(errno));
+			die(" - cannot open script file", IO_ERROR);
+		}
 		close(fdes);
 	}
 	
@@ -136,7 +146,11 @@ int main(int argc, char** argv) {
 		if ((!go_stdin) && (strcmp(argv[optind], "-") != 0)) fdes = open(argv[optind], O_RDONLY);
 				else { fdes = STDIN_FILENO; go_stdin = 1; }
 		
-		if (fdes < 0) {printstr_err(argv[optind]); die(" - error opening", IO_ERROR); };
+		if (fdes < 0) {
+			printstr_err(strerror(errno));
+			printstr_err(argv[optind]); 
+			die(" - error opening", IO_ERROR); 
+		};
 		
 		res = 1;
 		while (res > 0) {
@@ -201,5 +215,4 @@ int main(int argc, char** argv) {
 		printstr("Variables used:\n");
 		print_variables();
 	}
-
 }
