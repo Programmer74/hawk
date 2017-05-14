@@ -33,10 +33,12 @@ exit            return EXIT;
 !=              return NE;
 &&				return BOOLAND;
 [|][|]			return BOOLOR;
+[[]				return SQBROP;
+[]]				return SQBRCL;
 [0-9]+([.][0-9]+)?          { yylval = new_entry_0(); yylval->text = concat_string(yytext, NULL); 
                   return NUM;
                 }
-[$a-zA-Z_][a-zA-Z0-9_]* { yylval = new_entry_0(); yylval->type = id; yylval->text = concat_string(yytext, NULL); /*std::cout << "Got ID\n"; */
+[$a-zA-Z_][a-zA-Z0-9_]* { yylval = new_entry_0(); yylval->type = id; yylval->text = concat_string(yytext, NULL); 
                   return ID;
                 }
 ["]             {  yylval = new_entry_0(); yylval->type=strvalue; BEGIN(STR); }

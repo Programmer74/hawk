@@ -1,6 +1,8 @@
 #include "interpreter.h"
 #include <regex.h>   
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "customstring.h"
 #include "entry.h"
 
@@ -8,6 +10,9 @@ variable variables[VARIABLES_COUNT];
 int variables_count = 0;
 
 extern int has_printed;
+
+#define SPLIT -5
+char* current_assigned_var;
 
 int assign_variable(char* id, int type, char* svalue, double dvalue) {
 
@@ -43,6 +48,14 @@ int get_variable(char* id, variable** var) {
 		}
 	}
 	
+	char* arrname = concat_string("!!arr", id);
+	for (int i = 0; i < variables_count; i++) {
+		if (strcmp(variables[i].id, arrname) == 0) {
+			*var = &(variables[i]);
+			return 0;
+		}
+	}
+	
 	die(concat_string("No such variable ", id), VAR_NOT_FOUND_ERROR);
 	return -1;
 }
@@ -71,6 +84,15 @@ int print_variables() {
 		}
 		printstr("\n");
 	}
+}
+
+char* construct_name_for_arrayentryvar(char* id, int index) {
+	char* var_for_arrval = concat_string("!!arr", id);
+	var_for_arrval = concat_string(var_for_arrval, ":");
+	char buffer [33];
+	sprintf(buffer, "%d", index);
+	var_for_arrval = concat_string(var_for_arrval, buffer); //variable is !!arrID:index
+	return var_for_arrval;
 }
 
 int get_num_from_value(entry* value, double* store) {
@@ -213,19 +235,93 @@ int calculate_op(entry* cur, double* result) {
 		char* id = ((entry*)(cur->argv)[0])->text;
 		double val;
 		int res = calculate_op((cur->argv)[1], &val);
+		char* strval;
+		if (res < 0) strval = get_string_from_variable("!!strres");
 		//math stuff
 		if (strcmp(id, "sin") == 0) { *result = sin(val); return 0; }
 		if (strcmp(id, "cos") == 0) { *result = cos(val); return 0; }
 		if (strcmp(id, "exp") == 0) { *result = exp(val); return 0; }
 		if (strcmp(id, "log") == 0) { *result = log(val); return 0; }
 		if (strcmp(id, "sqrt") == 0) { *result = sqrt(val); return 0; }
+		if (strcmp(id, "strlen") == 0) { *result = strlen(strval); return 0; }
 		if (strcmp(id, "int") == 0) { 
 			*result = (int)val; 
 			if (res < 0) *result = (int)(atof(get_string_from_variable("!!strres")));
 			return 0; 
 		} 
-		die(concat_string("No such function", id), SUB_NOT_FOUND_ERROR);
+		if (strcmp(id, "split") == 0) { // split(ID ~ /regex/);
+			if (cur->argc != 4) die("Incorrect regex function", REGEX_ERROR);
+			//constructing name to store array
+			char* var_for_arrname = concat_string("!!arr", current_assigned_var);
+			assign_variable(var_for_arrname, NUM_VARIABLE, "", 0);
+			//not it is in var_for_arrname - !!arrID
+			
+			char* var_id = ((entry*)(cur->argv)[1])->text;        //id of variable to iterate for split
+			char* var_id_val = get_string_from_variable(var_id);  //its value
+			
+			char* subres = NULL;
+			char* var_for_arrval = NULL; //name to store array entry - !!arrID:index
+			subres = regexp_get_substring(var_id_val, ((entry*)(cur->argv)[2])->text); //find 1st substring
+			
+			int arrlen = 0;
+			while (subres != NULL) {
+				//construct variable name to store array entry
+				var_for_arrval = construct_name_for_arrayentryvar(current_assigned_var, arrlen);
+				
+				//assign it
+				assign_variable(var_for_arrval, STR_VARIABLE, subres, 0);
+				//array length
+				arrlen++;
+				//cutting already found
+				var_id_val = regexp_substitute_string_frombeginning(var_id_val, ((entry*)(cur->argv)[2])->text, "");
+				//find again
+				subres = regexp_get_substring(var_id_val, ((entry*)(cur->argv)[2])->text);
+			}
+			if (strcmp(var_id_val, "") != 0) {
+				//construct variable name to store last array entry
+				var_for_arrval = construct_name_for_arrayentryvar(current_assigned_var, arrlen); //variable is !!arrID:index
+				assign_variable(var_for_arrval, STR_VARIABLE, var_id_val, 0);
+				arrlen++;
+			}
+			
+			*result = SPLIT;
+			assign_variable(var_for_arrname, NUM_VARIABLE, "", arrlen);
+			return SPLIT;		
+
+		}
+		die(concat_string("No such function ", id), SUB_NOT_FOUND_ERROR);
 		return 1;
+	}
+	
+	if (cur->type == arrvalue) {
+		char* arr_name = ((entry*)(cur->argv)[0])->text; //ID[
+		
+		double val_id;
+		int res = calculate_op((cur->argv)[1], &val_id); //EXPR
+		if (res < 0) die("Array index can not be string", ARGUMENTS_ERROR); //]
+		
+		variable* var;
+		get_variable(concat_string("!!arr", arr_name), &var);
+		
+		int arr_len = (int)(var->dvalue);
+		if (arr_len <= (int)(val_id)) die("Array is too small", ARGUMENTS_ERROR);
+		
+		char* var_for_arrval = construct_name_for_arrayentryvar(arr_name, (int)val_id);
+		/*concat_string("!!arr", arr_name);
+		var_for_arrval = concat_string(var_for_arrval, ":");
+		char buffer [33];
+		sprintf(buffer, "%d", (int)(val_id));
+		var_for_arrval = concat_string(var_for_arrval, buffer);*/ //variable is !!arrID:index
+		
+		get_variable(var_for_arrval, &var);
+		if(var->type == NUM_VARIABLE) {
+			*result = var->dvalue;
+			return 0;
+		} else {
+			*result = 0;
+			assign_variable("!!strres", STR_VARIABLE, var->svalue, 0);
+			return -1;
+		}
 	}
 }
 
@@ -242,11 +338,12 @@ int run_block(entry* cur) {
 	if (cur->type == assignop) {
 		printrun("run_assign");
 		char* id = ((entry*)(cur->argv)[0])->text;
-
+		current_assigned_var = concat_string(id, NULL);
 		double val;
+		
 		int res = calculate_op((cur->argv)[1], &val);
 		if (res == 0) assign_variable(id, NUM_VARIABLE, "", val); //number
-		if (res < 0) {
+		if ((res < 0) && (res != SPLIT)) {
 			variable* calcres;
 			get_variable("!!strres", &calcres);
 			assign_variable(id, STR_VARIABLE, calcres->svalue, 0);
@@ -298,6 +395,7 @@ int run_block(entry* cur) {
 				variable* calcres;
 				get_variable("!!strres", &calcres);
 				printstr(calcres->svalue);
+				printstr("\n");
 				has_printed = 1;
 			}
 			return 0;

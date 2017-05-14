@@ -2,7 +2,7 @@
 #define H_ENTRY
 
 	typedef enum {
-			none = 0, singleop, blockop, exprop, assignop, value, strvalue, id, binaryop, unaryop, ifop, whileop, funop, regex
+			none = 0, singleop, blockop, exprop, assignop, value, strvalue, id, binaryop, unaryop, ifop, whileop, funop, regex, arrvalue
 	} entry_type ;
 
 	/*

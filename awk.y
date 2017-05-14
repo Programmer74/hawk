@@ -34,7 +34,7 @@
 		fprintf(stderr, "warning: %s\n", s);
 	}
 		
-	char* type_by_enum[] = { "none", "singleop", "blockop", "exprop", "assignop", "value", "strvalue", "id", "binaryop", "unaryop", "ifop", "whileop", "funop", "regex" };
+	char* type_by_enum[] = { "none", "singleop", "blockop", "exprop", "assignop", "value", "strvalue", "id", "binaryop", "unaryop", "ifop", "whileop", "funop", "regex", "arrvalue" };
 
 	//SOME ACTUALLY USEFUL STUFF
 	
@@ -161,7 +161,14 @@
 		tmp->type = regex;
 		return tmp;
 	}
+	entry* new_arrval_op(entry* a, entry* b) {
+		entry* tmp = new_entry_2(a, b);
+		tmp->type = arrvalue;
+		return tmp;
+	}
 %}
+
+%expect 1
 
 %token AWKBEGIN AWKEND
 %token REGMATCH
@@ -169,7 +176,8 @@
 %token IF ELSE WHILE EXIT
 %token EQ LE GE NE BOOLAND BOOLOR
 %token REGEX
-%token STRING NUM ID
+%token STRING NUM ID SQBROP SQBRCL
+
 
 /*
 %type<str> ID NUM STRING
@@ -180,7 +188,7 @@
 
 %%
 
-PROGRAM: OPS							{ rec_print($1, 0); head = $1; awkbegin = NULL; awkend = NULL;}// обработка дерева программы
+PROGRAM: OPS							{ rec_print($1, 0); head = $1; awkbegin = NULL; awkend = NULL;}
 |		AWKBEGIN '{' OPS '}' '{' OPS '}' { rec_print($6, 0); head = $6; awkbegin = $3; awkend = NULL;}
 |		'{' OPS '}' AWKEND  '{' OPS '}' { rec_print($2, 0); head = $2; awkbegin = NULL; awkend = $6;}
 |		AWKBEGIN '{' OPS '}' '{' OPS '}' AWKEND  '{' OPS '}' { rec_print($6, 0); head = $6; awkbegin = $3; awkend = $10;}
@@ -235,8 +243,10 @@ VAL:	NUM							 { $$ = new_expr_value($1); printop("plain value");}
 |	   '!' VAL						 { $$ = new_unary_op('!', $2); printop("binary !");}
 |	   '(' EXPR ')'					{ $$ = $2; }
 |	   ID							  { $$ = new_id_value($1); printop("value by id");}
+|	   ID SQBROP EXPR SQBRCL				 { $$=new_arrval_op($1, $3); printop("arrvaluecall");}
 |	   ID '(' EXPR ')'				 { $$=new_fun_op($1, $3); printop("funcall");}
 |		ID '(' ID REGEX ',' VAL ')'	{ $$ = new_sub_fun_op($1, $3, $4, $6); printop("regexp funcall"); } 
+|		ID '(' ID REGEX ')'	{ $$ = new_sub_fun_op($1, $3, $4, NULL); printop("regexp funcall"); } 
 |		STRING						{ $$ = new_expr_value($1); printop("string"); }
 ;
 

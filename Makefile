@@ -28,7 +28,7 @@ awk.tab.o: awk.tab.c
 main.o: main.c
 	$(CC) $(CFLAGS) -c main.c
 interpreter.o: interpreter.c
-	$(CC) $(CFLAGS) -c interpreter.c -lm
+	$(CC) $(CFLAGS) -c interpreter.c
 customstring.o: customstring.c
 	$(CC) $(CFLAGS) -c customstring.c
 customio.o: customio.c

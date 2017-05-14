@@ -132,6 +132,7 @@ int main(int argc, char** argv) {
 	
 	//START AWKBEGIN
 	if (awkbegin != NULL) run_block(awkbegin);
+	if (has_printed) { printstr(get_string_from_variable("ORS")); has_printed = 0; }
 	
 	int go_stdin = (optind == argc) ? 1 : 0;
 	
@@ -201,7 +202,7 @@ int main(int argc, char** argv) {
 			//EXECUTION OF MAIN BLOCK!!!
 			has_printed = 0;
 			run_block(head);
-			if (has_printed) printstr(get_string_from_variable("ORS"));
+			if (has_printed) { printstr(get_string_from_variable("ORS")); has_printed = 0; }
 			current_line_finder = strtok (current_line_finder + strlen(current_line_finder) + 1, "\n");
 		}
 		optind++;
@@ -210,6 +211,7 @@ int main(int argc, char** argv) {
 	
 	//START AWKEND
 	if (awkend != NULL) run_block(awkend);
+	if (has_printed) { printstr(get_string_from_variable("ORS")); has_printed = 0; }
 	
 	if (DEBUG) {
 		printstr("Variables used:\n");

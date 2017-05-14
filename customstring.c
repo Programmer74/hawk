@@ -26,10 +26,38 @@ char* concat_string(char* s1, char* s2) {
 
 char* substitute_string(char* string, int from, int to, char* subwith) {
 	char* str = (char*)calloc(BIG_STRING_BUFFER_SIZE, sizeof(char*));
+	
 	strncpy(str, string, from);
 	strcpy(str + from, subwith);
 	strcpy(str + from + strlen(subwith), string + to);
 	return str; 
+}
+char* get_substring(char* string, int from, int to) {
+	char* str = (char*)calloc(BIG_STRING_BUFFER_SIZE, sizeof(char*));
+
+	strncpy(str, string, from); // + from, to - from);
+	return str; 
+}
+
+
+char* regexp_get_substring(char* string, char* regexp) {
+	regex_t regex;
+	regmatch_t matches[2];
+	int reti;
+
+	reti = regcomp(&regex, regexp, 0);
+	if (reti) {
+		die("Could not compile regex", REGEX_ERROR);
+	}
+
+	reti = regexec(&regex, string, 2, matches, 0);
+	if (!reti) {
+		//printf("--> get %s %d:%d\n", string, matches[0].rm_so, matches[0].rm_eo);
+		return get_substring(string, matches[0].rm_so, matches[0].rm_eo);
+	} else {
+		//printf("--> get no match\n");
+		return NULL;
+	}
 }
 
 char* regexp_substitute_string(char* string, char* regexp, char* subwith) {
@@ -45,11 +73,33 @@ char* regexp_substitute_string(char* string, char* regexp, char* subwith) {
 
 	reti = regexec(&regex, string, 2, matches, 0);
 	if (!reti) {
-		
+		//printf("--> sub %s %d:%d with >%s<\n", string, matches[0].rm_so, matches[0].rm_eo, subwith);
 		return substitute_string(string, matches[0].rm_so, matches[0].rm_eo, subwith);
 	}
 	else if (reti == REG_NOMATCH) {
-		
+		//printf("--> sub no match\n");
+		return string;
+	}
+}
+
+char* regexp_substitute_string_frombeginning(char* string, char* regexp, char* subwith) {
+
+	regex_t regex;
+	regmatch_t matches[2];
+	int reti;
+
+	reti = regcomp(&regex, regexp, 0);
+	if (reti) {
+		die("Could not compile regex", REGEX_ERROR);
+	}
+
+	reti = regexec(&regex, string, 2, matches, 0);
+	if (!reti) {
+		//printf("--> sub %s %d:%d with >%s<\n", string, 0, matches[0].rm_eo, subwith);
+		return substitute_string(string, 0, matches[0].rm_eo, subwith);
+	}
+	else if (reti == REG_NOMATCH) {
+		//printf("--> sub no match\n");
 		return string;
 	}
 }

@@ -46,7 +46,9 @@
      REGEX = 272,
      STRING = 273,
      NUM = 274,
-     ID = 275
+     ID = 275,
+     SQBROP = 276,
+     SQBRCL = 277
    };
 #endif
 #define AWKBEGIN 258
@@ -67,6 +69,8 @@
 #define STRING 273
 #define NUM 274
 #define ID 275
+#define SQBROP 276
+#define SQBRCL 277
 
 
 
