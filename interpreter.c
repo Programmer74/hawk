@@ -22,6 +22,7 @@ int assign_variable(char* id, int type, char* svalue, double dvalue) {
 			variables[i].svalue = concat_string(svalue, NULL);
 			variables[i].dvalue = 0;
 			if (type == NUM_VARIABLE)  variables[i].dvalue = dvalue;
+			//("    assigning to existing var >%s<\n", id);
 			return 0;
 		}
 	}
@@ -31,6 +32,7 @@ int assign_variable(char* id, int type, char* svalue, double dvalue) {
 	variables[variables_count].dvalue = 0;
 	if (type == NUM_VARIABLE) variables[variables_count].dvalue = dvalue;
 	variables_count++;
+	//("    assigning to new var >%s<\n", id);
 	return 0;
 }
 
@@ -55,7 +57,7 @@ int get_variable(char* id, variable** var) {
 			return 0;
 		}
 	}
-	
+	//("    getting var >%s<\n", id);
 	die(concat_string("No such variable ", id), VAR_NOT_FOUND_ERROR);
 	return -1;
 }
@@ -67,7 +69,7 @@ char* get_string_from_variable(char* id) {
 
 		}
 	}
-	
+	//("    getting string from var >%s<\n", id);
 	die(concat_string("No such variable ", id), VAR_NOT_FOUND_ERROR);
 	return "";
 }
@@ -165,6 +167,31 @@ int calculate_op(entry* cur, double* result) {
 		return 0;
 	}
 	if (cur->type == binaryop) {
+		//first let's check if it is regexp
+		if (cur->op == '~') {
+			//("regexp matching...\n");
+			//(cur->argv)[0] for id of string, (cur->argv)[1] for regex itself
+			regex_t regex;
+			int reti;
+			
+			variable* var;
+			get_variable(((entry*)(cur->argv)[0])->text, &var);
+			//("   /%s/ on %s\n", ((entry*)(cur->argv)[1])->text, var->svalue);
+			reti = regcomp(&regex, ((entry*)(cur->argv)[1])->text, 0);
+			if (reti) {
+				die("Could not compile regex", REGEX_ERROR);
+			}
+			*result = 0;
+			reti = regexec(&regex, var->svalue, 0, NULL, 0);
+			if (!reti) {
+				*result = 1;
+			}
+			else if (reti == REG_NOMATCH) {
+				*result = 0;
+			}
+			return -1;
+		}
+		//and then some another variants
 		
 		char* left_str = NULL;
 		char* right_str = NULL;
@@ -205,28 +232,7 @@ int calculate_op(entry* cur, double* result) {
 		if ((cur->op == '&') && (cur->op2 == '&')) *result = ((left_side != 0) && (right_side != 0)) ? 1 : 0;
 		if ((cur->op == '|') && (cur->op2 == '|')) *result = ((left_side != 0) || (right_side != 0)) ? 1 : 0;
 		
-		if (cur->op == '~') {
-
-			//(cur->argv)[0] for id of string, (cur->argv)[1] for regex itself
-			regex_t regex;
-			int reti;
-
-			variable* var;
-			get_variable(((entry*)(cur->argv)[0])->text, &var);
-			
-			reti = regcomp(&regex, ((entry*)(cur->argv)[1])->text, 0);
-			if (reti) {
-				die("Could not compile regex", REGEX_ERROR);
-			}
-			*result = 0;
-			reti = regexec(&regex, var->svalue, 0, NULL, 0);
-			if (!reti) {
-				*result = 1;
-			}
-			else if (reti == REG_NOMATCH) {
-				*result = 0;
-			}
-		}
+		
 		
 		return 0;
 	}
@@ -354,7 +360,10 @@ int run_block(entry* cur) {
 		printrun("run_if");
 		double result;
 		calculate_op((cur->argv)[0], &result);
-		if (result != 0) run_block((cur->argv)[1]);
+		if (result > 0) {
+			printrun("run_if_ok");
+			run_block((cur->argv)[1]);
+		}
 				else
 					if ((cur->argv)[2]!= NULL) run_block((cur->argv)[2]);
 		return 0;
