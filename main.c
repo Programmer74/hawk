@@ -10,11 +10,12 @@
 #include "interpreter.h"
 #include "customio.h"
 
+
 char *parserInput;
 char *textInput;
 char *errorMessage;
 
-int DEBUG = 0;
+extern int DEBUG = 0;
 
 int parserReadOffset = 0;
 int textReadLen = 0;
@@ -111,7 +112,7 @@ int main(int argc, char** argv) {
 		res = read(fdes, parserInput, FILE_INPUT_BUFFER_SIZE);
 		if (res < 0) {
 			printstr_err(strerror(errno));
-			die(" - cannot open script file", IO_ERROR);
+			die(" - cannot read script file", IO_ERROR);
 		}
 		close(fdes);
 	}
@@ -149,6 +150,7 @@ int main(int argc, char** argv) {
 		
 		if (fdes < 0) {
 			printstr_err(strerror(errno));
+			printstr_err("  ");
 			printstr_err(argv[optind]); 
 			die(" - error opening", IO_ERROR); 
 		};
@@ -163,18 +165,25 @@ int main(int argc, char** argv) {
 				if (textInput == NULL) {printstr_err(argv[optind]); die(" - too big to buffer", IO_ERROR); };
 			}
 		}
+		if (DEBUG) fprintf(stderr, "read done\n");
 		textInput[textReadLen] = '\0';
-		if (res < 0) {printstr_err(argv[optind]); die(" - error reading", IO_ERROR); };
+		if (res < 0) {
+			printstr_err(argv[optind]); 
+			printstr_err(strerror(errno));
+			die(" - error reading", IO_ERROR); 
+		};
 		
 
 		//iterate over input text 
-		char* current_line = (char*)calloc(BIG_STRING_BUFFER_SIZE * 10, sizeof(char));
-		char* current_field = (char*)calloc(BIG_STRING_BUFFER_SIZE, sizeof(char));
+		char* current_line;// = (char*)calloc(BIG_STRING_BUFFER_SIZE * 10, sizeof(char));
+		char* current_field;// = (char*)calloc(BIG_STRING_BUFFER_SIZE, sizeof(char));
 		int line_number = 0;
 		char* current_line_finder = strtok (textInput, RS);
 		while (current_line_finder != NULL) {
+			if (DEBUG) fprintf(stderr, "found line %d\n", line_number);
 			//iterating over lines
 			line_number++;
+			char* current_line = (char*)calloc(strlen(current_line_finder) + 2, sizeof(char));
 			memcpy(current_line, current_line_finder, strlen(current_line_finder));
 			current_line[strlen(current_line_finder)] = '\0';
 			current_line[strlen(current_line_finder) + 1] = '\0';
@@ -183,18 +192,22 @@ int main(int argc, char** argv) {
 			char* current_field_finder = strtok(current_line, FS);
 			while (current_field_finder != NULL) {
 				//iterating over fields
-				memcpy(current_field, current_field_finder, strlen(current_field_finder));
+				current_field = (char*)calloc(strlen(current_field_finder) + 2, sizeof(char));
+				memcpy(current_field, current_field_finder, strlen(current_field_finder)); 
+			if (DEBUG) fprintf(stderr, " memcpy done\n");
 				current_field[strlen(current_field_finder)] = '\0';
 				current_field[strlen(current_field_finder) + 1] = '\0';
 				
 				//here in current_field we have our current field!
+				
 				field_number++;
+			if (field_number < 10)
 				assign_field(field_number, current_field);
 				
 				current_field_finder = strtok(current_field_finder + strlen(current_field_finder) + 1, " ");
 			}
-			
-			for (int i = field_number + 1; i <= 9; i++) assign_field(i, "");
+			if (DEBUG) fprintf(stderr, ">>>>>%d\n", field_number);	
+				for (int i = field_number + 1; i <= 9; i++) assign_field(i, "");
 			
 			assign_variable("NF", NUM_VARIABLE, "", field_number);
 			assign_variable("NR", NUM_VARIABLE, "", line_number);
@@ -204,6 +217,8 @@ int main(int argc, char** argv) {
 			run_block(head);
 			if (has_printed) { printstr(get_string_from_variable("ORS")); has_printed = 0; }
 			current_line_finder = strtok (current_line_finder + strlen(current_line_finder) + 1, "\n");
+			free(current_line);
+			free(current_field);
 		}
 		optind++;
 		if (!go_stdin) { close(fdes); } else { go_stdin = 0; };

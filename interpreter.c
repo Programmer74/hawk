@@ -10,6 +10,7 @@ variable variables[VARIABLES_COUNT];
 int variables_count = 0;
 
 extern int has_printed;
+extern int DEBUG;
 
 #define SPLIT -5
 char* current_assigned_var;
@@ -22,7 +23,7 @@ int assign_variable(char* id, int type, char* svalue, double dvalue) {
 			variables[i].svalue = concat_string(svalue, NULL);
 			variables[i].dvalue = 0;
 			if (type == NUM_VARIABLE)  variables[i].dvalue = dvalue;
-			//("    assigning to existing var >%s<\n", id);
+			if (DEBUG) printf("    assigning to existing var >%s<\n", id);
 			return 0;
 		}
 	}
@@ -32,7 +33,7 @@ int assign_variable(char* id, int type, char* svalue, double dvalue) {
 	variables[variables_count].dvalue = 0;
 	if (type == NUM_VARIABLE) variables[variables_count].dvalue = dvalue;
 	variables_count++;
-	//("    assigning to new var >%s<\n", id);
+	if (DEBUG) printf("    assigning to new var >%s<\n", id);
 	return 0;
 }
 
@@ -57,7 +58,7 @@ int get_variable(char* id, variable** var) {
 			return 0;
 		}
 	}
-	//("    getting var >%s<\n", id);
+	if (DEBUG)printf("    getting var >%s<\n", id);
 	die(concat_string("No such variable ", id), VAR_NOT_FOUND_ERROR);
 	return -1;
 }
@@ -69,7 +70,7 @@ char* get_string_from_variable(char* id) {
 
 		}
 	}
-	//("    getting string from var >%s<\n", id);
+	if (DEBUG) printf("    getting string from var >%s<\n", id);
 	die(concat_string("No such variable ", id), VAR_NOT_FOUND_ERROR);
 	return "";
 }

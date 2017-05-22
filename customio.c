@@ -1,23 +1,41 @@
 #include "customio.h"
+#include <errno.h>
+
 
 void printstr(char* s) {
-	write(STDOUT_FILENO, s, strlen(s));
+	int res = write(STDOUT_FILENO, s, strlen(s));
+	if (res < 0) {
+		printstr_err(strerror(errno));
+		printstr_err("\n");
+		exit(-10);
+	}
 }
 void printstr_err(char* s) {
-	write(STDERR_FILENO, s, strlen(s));
+	int res = write(STDERR_FILENO, s, strlen(s));
+	//exit(-10);
 }
 
 void printint(int x) {
 	char* tmp = (char*)calloc(50, sizeof(char));
 	sprintf(tmp, "%d", x);
-	write(STDOUT_FILENO, tmp, strlen(tmp));
+	int res = write(STDOUT_FILENO, tmp, strlen(tmp));
+	if (res < 0) {
+		printstr_err(strerror(errno));
+		printstr_err("\n");
+		exit(-10);
+	}
 	free(tmp);
 }
 
 void printint_err(int x) {
 	char* tmp = (char*)calloc(50, sizeof(char));
 	sprintf(tmp, "%d", x);
-	write(STDERR_FILENO, tmp, strlen(tmp));
+	int res = write(STDERR_FILENO, tmp, strlen(tmp));
+	if (res < 0) {
+		printstr_err(strerror(errno));
+		printstr_err("\n");
+		exit(-10);
+	}
 	free(tmp);
 }
 
@@ -37,7 +55,12 @@ void printdouble(double x) {
 		
 	}
 	//exit(0);
-	write(STDOUT_FILENO, tmp, i);
+	int res = write(STDOUT_FILENO, tmp, i);
+	if (res < 0) {
+		printstr_err(strerror(errno));
+		printstr_err("\n");
+		exit(-10);
+	}
 	free(tmp);
 }
 

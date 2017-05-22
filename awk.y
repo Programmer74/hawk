@@ -7,7 +7,6 @@
     #include "customstring.h"
     #include "customio.h"
     #include "entry.h"
-
     extern int yylineno;
     extern int yylex();
     extern int DEBUG;

@@ -10,18 +10,19 @@ YACCFLAGS	= -d
 
 EXECUTABLE 	= hawk
 
-all: main 
+all: hawk 
 
-main: lex.yy.o awk.tab.o main.o interpreter.o customstring.o customio.o 
+
+hawk: lex.yy.o awk.tab.o main.o interpreter.o customstring.o customio.o 
 	$(CC) $(CFLAGS) $(COBJECTS) -lm -o $(EXECUTABLE) 
 
-lexfile: awk.lex
+lex.yy.c: awk.lex
 	$(LEX) awk.lex
 	
-yaccfile: lexfile awk.y
+awk.tab.h: awk.y
 	$(YACC) $(YACCFLAGS) awk.y
 
-lex.yy.o: lexfile yaccfile
+lex.yy.o: lex.yy.c awk.tab.h
 	$(CC) $(CFLAGS) -c lex.yy.c
 awk.tab.o: awk.tab.c
 	$(CC) $(CFLAGS) -c awk.tab.c
