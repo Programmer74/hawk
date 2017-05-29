@@ -1,5 +1,5 @@
 CC 			= gcc
-CFLAGS 		= -w -std=gnu99
+CFLAGS 		= -w
 CSOURCES 	= lex.yy.c awk.tab.c main.c interpreter.c customstring.c customio.c
 COBJECTS 	= $(CSOURCES:.c=.o) 
 
@@ -10,19 +10,18 @@ YACCFLAGS	= -d
 
 EXECUTABLE 	= hawk
 
-all: hawk 
+all: main 
 
-
-hawk: lex.yy.o awk.tab.o main.o interpreter.o customstring.o customio.o 
+main: lex.yy.o awk.tab.o main.o interpreter.o customstring.o customio.o 
 	$(CC) $(CFLAGS) $(COBJECTS) -lm -o $(EXECUTABLE) 
 
-lex.yy.c: awk.lex
+lexfile: awk.lex
 	$(LEX) awk.lex
 	
-awk.tab.h: awk.y
+yaccfile: lexfile awk.y
 	$(YACC) $(YACCFLAGS) awk.y
 
-lex.yy.o: lex.yy.c awk.tab.h
+lex.yy.o: lexfile yaccfile
 	$(CC) $(CFLAGS) -c lex.yy.c
 awk.tab.o: awk.tab.c
 	$(CC) $(CFLAGS) -c awk.tab.c
@@ -33,7 +32,7 @@ interpreter.o: interpreter.c
 customstring.o: customstring.c
 	$(CC) $(CFLAGS) -c customstring.c
 customio.o: customio.c
-	$(CC) $(CFLAGS) -c customio.c 
+	$(CC) $(CFLAGS) -c customio.c
 
 
 clean: 
